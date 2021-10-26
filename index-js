@@ -1,0 +1,151 @@
+const express = require('express');
+const http = require('http');
+const cors = require('cors');
+const { Sequelize, DataTypes } = require('sequelize');
+const { title } = require('process');
+
+const app = express();
+
+const sequelize = new Sequelize('ToDo', 'postgres', 'admin', {
+    host: 'localhost',
+    dialect: 'postgres',
+    pool: {
+        max: 5,
+        min: 0,
+        acquire: 30000,
+        idle: 10000
+      }
+  });
+
+  sequelize.authenticate()
+ .then(() => {
+   console.log('Connection has been established successfully.');
+ })
+ .catch(err => {
+   console.error('Unable to connect to the database:', err);
+ });
+
+app.use(cors());
+app.use(express.urlencoded({extended: true}));
+app.use(express.json());
+
+
+app.use((req, res, next) => {
+console.log('URL = ', req.url);
+console.log('Original_URL = ', req.origialUrl);
+console.log('METHOD = ', req.method);
+console.log('HOST = ', req.headers.host);
+console.log('InSecure = ', req.secure);
+console.log('BODY', req.body);
+console.log('QUERY', req.query);
+next();
+});
+
+const base = sequelize.define('ToDo', {
+    title:{
+        type: DataTypes.STRING
+    },
+    description:{
+        type: DataTypes.STRING
+    }
+})
+
+sequelize.sync({
+    force: true
+});
+
+app.put('/test', (req, res)=>{
+res.status(200).json({message: 'LIKEIT'});
+})
+
+app.post('/base', (req, res)=>{
+    base.create({
+        title: req.body.title,
+        description: req.body.description
+    }).then(base => {
+        res.status(200).json(base)
+    }).catch(function (err) {
+        console.log("create failed with error: " + err);
+        return 0;
+    });
+})
+
+app.get('/base', (req, res)=>{
+    base.findAll().then(base => {
+        res.status(200).json(base)
+    }).catch(function (err) {
+        console.log("get failed with error: " + err);
+        return 0;
+    });
+})
+
+app.get('/base/:index', (req, res)=>{
+    let id = req.params.index;
+    base.findByPk(id).then(bases => {
+        res.status(200).json({bases})
+    }).catch(function (err) {
+        console.log("get failed with error: " + err);
+        return 0;
+    });
+})
+
+app.patch('/base/:index', (req, res)=>{
+    let id = req.params.index;
+    base.update({ title: req.body.title, description: req.body.title },
+        { where: { id: id } }
+    ).then(base => {
+        res.status(200).json({msg:'изменено'})
+    }).catch(function (err) {
+        console.log("patch failed with error: " + err);
+        return 0;
+    })
+})
+
+app.delete('/base/:index', (req, res)=>{
+    let id = req.params.index;
+    base.destroy(
+        { where: { id: id } }
+    ).then(() => {
+        res.status(200).json({msg:'удалено'})
+    }).catch(function (err) {
+        console.log("delete failed with error: " + err);
+        return 0;
+    })
+})
+
+app.patch('/test', (req, res)=>{
+res.status(200).json({message: 'LIKEIT'});
+})
+
+app.delete('/test', (req, res)=>{
+res.status(200).json({message: 'LIKEIT'});
+})
+
+let arr = [];
+
+app.post('/strings', (req, res)=>{
+    let mas = req.body.str
+    for (i=0; i<mas.length; i++){
+    arr.push(mas[i]);
+    }
+    res.status(200).json({message: 'OK'});
+})
+
+app.get('/strings', (req, res)=>{
+    res.status(200).json(arr)
+})
+
+app.delete('/strings/:index', (req, res)=>{
+    let i = req.params.index;
+    arr.splice(i,1);
+    res.status(200).json(arr);
+})
+
+app.delete('/strings', (req, res)=>{
+    arr = [];
+    res.status(200).json(arr);
+})
+
+http.createServer(app).listen(3000, () => {
+console.log('Server is working on port 3000');
+})
